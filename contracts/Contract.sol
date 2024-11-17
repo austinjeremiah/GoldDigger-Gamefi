@@ -37,7 +37,6 @@ contract Mining is ReentrancyGuard, ERC1155Holder {
             "You must have at least 1 of the pickaxe you are trying to stake or buy it from the shop"
         );
  if (playerPickaxe[msg.sender].isData) {
-            // Transfer using safeTransfer
             pickaxeNftCollection.safeTransferFrom(
                 address(this),
                 msg.sender,
@@ -46,3 +45,86 @@ contract Mining is ReentrancyGuard, ERC1155Holder {
                 "Returning your old pickaxe"
             );
         }
+ 
+        uint256 reward = calculateRewards(msg.sender);
+        rewardsToken.transfer(msg.sender, reward);
+
+       
+        pickaxeNftCollection.safeTransferFrom(
+            msg.sender,
+            address(this),
+            _tokenId,
+            1,
+            "Staking your pickaxe"
+        );
+
+        // Update the playerPickaxe mapping
+        playerPickaxe[msg.sender].value = _tokenId;
+        playerPickaxe[msg.sender].isData = true;
+        playerLastUpdate[msg.sender].isData = true;
+        playerLastUpdate[msg.sender].value = block.timestamp;
+    }
+
+    function withdraw() external nonReentrant {
+        // Ensure the player has a pickaxe
+        require(
+            playerPickaxe[msg.sender].isData,
+            "You do not have a pickaxe to withdraw."
+        );
+
+        uint256 reward = calculateRewards(msg.sender);
+        rewardsToken.transfer(msg.sender, reward);
+
+        
+        pickaxeNftCollection.safeTransferFrom(
+            address(this),
+            msg.sender,
+            playerPickaxe[msg.sender].value,
+            1,
+            "Returning your old pickaxe"
+        );
+
+       
+        playerPickaxe[msg.sender].isData = false;
+
+
+        playerLastUpdate[msg.sender].isData = true;
+        playerLastUpdate[msg.sender].value = block.timestamp;
+    }
+
+    function claim() external nonReentrant {
+       
+        uint256 reward = calculateRewards(msg.sender);
+        rewardsToken.transfer(msg.sender, reward);
+
+        
+        playerLastUpdate[msg.sender].isData = true;
+        playerLastUpdate[msg.sender].value = block.timestamp;
+    }
+
+
+    // Calculate the rewards the player is owed since last time they were paid out
+    
+    function calculateRewards(address _player)
+        public
+        view
+        returns (uint256 _rewards)
+    {
+       
+        if (
+            !playerLastUpdate[_player].isData || !playerPickaxe[_player].isData
+        ) {
+            return 0;
+        }
+
+        uint256 timeDifference = block.timestamp -
+            playerLastUpdate[_player].value;
+
+        uint256 rewards = timeDifference *
+            10_000_000_000_000 *
+            (playerPickaxe[_player].value + 1);
+
+  
+        return rewards;
+    }
+}
