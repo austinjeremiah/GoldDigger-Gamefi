@@ -11,6 +11,7 @@ module.exports = {
       },
     },
   },
+  
   networks: {
     zksync_testnet: {
       url: "https://zksync2-testnet.zksync.dev",
@@ -41,3 +42,4 @@ module.exports = {
     },
   },
 };
+
